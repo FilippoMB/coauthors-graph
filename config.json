@@ -1,0 +1,13 @@
+{
+    "author_name": "F. M. Bianchi",
+    "author_id": "139/5968",
+    "base_node_size": 3,
+    "degree_multiplier": 2,
+    "base_edge_size": 1,
+    "edge_size_multiplier": 0.15,
+    "to_fix": [
+        ["Michael C. Kampffmeyer", "Michael Kampffmeyer"],
+        ["Roland Olsson 0001", "Roland Olsson"]
+    ],
+    "community_algo": "modularity"
+}
