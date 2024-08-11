@@ -2,11 +2,9 @@
 
 Each node in the graph is a co-author. The size of the node is proportional to its degree, so the larger the node the more a co-author published with other co-authors in the graph. The size of the edges are proportional to the number of different papers two authors published. The nodes are colored based on their community. Yourself is a black node in the middle with a fixed size.
 
-The graph will be saved in a file called `coauthors.html`. It can be visualized in your browser or any other html renderer. 
-<div align="center">
- Mine is this [one](https://htmlpreview.github.io/?https://github.com/FilippoMB/coauthors-graph/blob/main/coauthors.html).
-</div>
-<br>
+
+👉 Mine is this [one](https://htmlpreview.github.io/?https://github.com/FilippoMB/coauthors-graph/blob/main/coauthors.html).
+
 
 # 🚀 Create your own graph
 
