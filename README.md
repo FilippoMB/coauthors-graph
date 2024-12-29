@@ -37,3 +37,5 @@ pip install matplotlib networkx gravis selenium
 ````bash
 python main.py
 ````
+
+After running the script, the file ``coauthors.html`` containing the co-authors graph will appear in your folder.
