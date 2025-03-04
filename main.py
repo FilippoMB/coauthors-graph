@@ -6,6 +6,7 @@ import matplotlib
 import gravis as gv
 import os
 import json
+import numpy as np
 
 ### Util functions ###############
 def fetch_dblp_data(author_id):
@@ -60,7 +61,8 @@ for publication in publications:
         for author2 in publication:
             if author1 != author2:
                 if G.has_edge(author1, author2):
-                    G[author1][author2]['weight'] += 1
+                    if author1 == config['author_name'] or author2 == config['author_name']:
+                        G[author1][author2]['weight'] += 1
                 else:
                     G.add_edge(author1, author2, weight=1)
 
@@ -68,7 +70,7 @@ for publication in publications:
 if config['community_algo'] == 'louvain':
     communities = nx.community.louvain_communities(G, seed=123, resolution=1.5)
 elif config['community_algo'] == 'modularity':
-    communities = nx.community.greedy_modularity_communities(G)
+    communities = nx.community.greedy_modularity_communities(G, resolution=1.5)
 else:
     raise ValueError('Invalid community algorithm')
 
@@ -94,8 +96,17 @@ for u, v in G.edges:
 for node_id in G.nodes:
     node = G.nodes[node_id]
 
-    # Set the size of the node proportional to the degree of the node
-    node['size'] = G.degree[node_id]*config['degree_multiplier'] + config['base_node_size']
+    # If the node is the main author, skip (we'll set size later).
+    if node_id == config['author_name']:
+        continue
+
+    # Otherwise, determine how many publications this node shares with the main author
+    coauthor_count = G[node_id][config['author_name']]['weight'] #if G.has_edge(node_id, config['author_name']) else 0
+
+    # Example: offset by 1 to avoid log(0), then multiply
+    node_size = config['base_node_size'] + config['node_size_multiplier'] * np.log1p(coauthor_count)  # log1p(x) is log(x+1)
+
+    node['size'] = node_size
 
     # Color a node based on the community it belongs to
     for i, community in enumerate(communities):
