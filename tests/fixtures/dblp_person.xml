@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<dblpperson name="Alice Example" pid="01/1" n="5">
+  <person key="homepages/01/1">
+    <author pid="01/1">Alice Example</author>
+  </person>
+  <r>
+    <article key="journals/example/ExampleBC24">
+      <author pid="01/1">Alice Example</author>
+      <author pid="02/2">Bob Builder</author>
+      <author pid="03/3">Carol Example</author>
+      <title>Graph Models with H<sub>2</sub>O.</title>
+      <year>2024</year>
+      <journal>Journal of Examples</journal>
+    </article>
+  </r>
+  <r>
+    <article publtype="informal" key="journals/corr/abs-2301-00001">
+      <author pid="01/1">Alice Example</author>
+      <author pid="02/2">Robert Builder</author>
+      <author pid="03/3">Carol Example</author>
+      <title>A useful preprint.</title>
+      <year>2023</year>
+      <journal>CoRR</journal>
+    </article>
+  </r>
+  <r>
+    <inproceedings key="conf/example/ExampleD22">
+      <author pid="01/1">Alice Example</author>
+      <author pid="04/4">Dana Researcher</author>
+      <title>A conference result.</title>
+      <year>2022</year>
+      <booktitle>EXAMPLE</booktitle>
+    </inproceedings>
+  </r>
+  <r>
+    <book key="books/example/Example21">
+      <author pid="01/1">Alice Example</author>
+      <author pid="05/5">Book Collaborator</author>
+      <title>An excluded book.</title>
+      <year>2021</year>
+    </book>
+  </r>
+  <r>
+    <proceedings key="conf/example/2020">
+      <editor pid="01/1">Alice Example</editor>
+      <title>Excluded proceedings.</title>
+      <year>2020</year>
+    </proceedings>
+  </r>
+</dblpperson>

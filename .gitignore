@@ -1,0 +1,11 @@
+.venv/
+build/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+web/node_modules/
+web/dist/
+web/public/data/graph.json
+web/public/data/graph.json.tmp
+.DS_Store

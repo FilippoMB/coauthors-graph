@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coauthors-graph"
+version = "1.0.0"
+description = "Generate a static, interactive co-author graph from a DBLP profile."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "networkx==3.6.1",
+  "numpy==2.5.1",
+  "requests==2.34.2"
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest==8.4.2",
+  "ruff==0.15.21"
+]
+
+[project.scripts]
+coauthors-graph = "coauthors_graph.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]

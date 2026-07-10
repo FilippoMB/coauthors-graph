@@ -1,41 +1,91 @@
-📚 Create and visualize with [Gravis](https://robert-haas.github.io/gravis-docs/) your co-authors graph based on your articles on the [DBLP](https://dblp.org/) database.
+# Co-author network
 
-Each node in the graph is a co-author. The size of the node is proportional to its degree, so the larger the node the more a co-author published with other co-authors in the graph. The size of the edges are proportional to the number of different papers two authors published. The nodes are colored based on their community. Yourself is a black node in the middle with a fixed size.
+A modern, interactive view of [Filippo Maria Bianchi's](https://dblp.org/pid/139/5968.html) research collaborations, built from DBLP and published as a static GitHub Pages site.
 
+**Live site:** [filippomb.github.io/coauthors-graph](https://filippomb.github.io/coauthors-graph/)
 
-👉 Mine is this [one](https://htmlpreview.github.io/?https://github.com/FilippoMB/coauthors-graph/blob/main/coauthors.html).
+The graph uses color for collaboration communities, node size for publication frequency, and edge width for the number of papers shared by each author pair. The focal author is the star-shaped node. Hover to isolate a neighborhood, click an author to inspect shared publications, drag nodes to explore, or use the fit button to restore the full view.
 
+## How it works
 
-# 🚀 Create your own graph
+The project is split into two deliberately small parts:
 
-## 🎓 Get your DBLP ID
+1. The Python package in `src/coauthors_graph` downloads the official DBLP person XML, validates it, constructs a weighted NetworkX graph, detects communities, computes a deterministic layout, and writes versioned JSON.
+2. The Vite/Cytoscape.js frontend in `web` renders that JSON as a responsive, accessible static site with adaptive light and dark themes.
 
-- Go to [DBLP](https://dblp.org/) and write your name in the search bar.
-- Under "Exact macthces" your name should pop up.
-- Click on it, and you should be redirected to a page like this: `https://dblp.org/pid/139/5968.html`.
-- The digits at the end representyour DBLP ID, e.g, mine is `139/5968`.
+Authors are keyed by their stable DBLP PIDs rather than abbreviated names. Journal articles, conference papers, and preprints are treated equally. Books and edited proceedings are not included.
 
-## ⚙️ Modify the configuration file
+## Local development
 
-Modify the following entries in `config.json`:
+Python 3.12+ and Node.js 24 are recommended.
 
-- `"author_name"` put your own name with initials, e.g., `"F. M. Bianchi"`.
-- `"author_id"` put the DBLP ID that you extracted before, e.g., `"139/5968"`.
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip ".[test]"
+python -m coauthors_graph --config config.json --output web/public/data/graph.json
 
-There are few other optional parameters to set.
+cd web
+npm ci
+npm run dev
+```
 
-- `"base_node_size"`, `"degree_multiplier"`, `"base_edge_size"`, and `"edge_size_multiplier"`can be adjusted until your own graph renders nicely by following a trial and error approach.
-- Some of the names of your co-authors can be duplicated or appear with a a numerical code in front of it. Specify the wrong and the corrected version of your co-authors names in `"to_fix"`.
-- The communities are colored by default using modularity. You can also use the Louvain community detection algorithm by setting `"community_algo": "louvain"`.
+Vite prints the local URL for the development site. Regenerate `web/public/data/graph.json` whenever you want to pull the latest DBLP records.
 
-## 💻 Install dependencies and run the script
+Run all automated checks with:
 
-````bash
-pip install matplotlib networkx gravis selenium
-````
+```bash
+python -m pytest
+python -m ruff check src tests automation
+python -m ruff format --check src tests automation
+npm --prefix web test
+npm --prefix web run build
+```
 
-````bash
-python main.py
-````
+## Configuration
 
-After running the script, the file ``coauthors.html`` containing the co-authors graph will appear in your folder.
+`config.json` contains the graph's stable inputs:
+
+```json
+{
+  "author_id": "139/5968",
+  "name_overrides": {
+    "191/9382": "Michael Kampffmeyer",
+    "98/256": "Roland Olsson"
+  },
+  "community_algorithm": "greedy_modularity",
+  "community_resolution": 1.5,
+  "layout_seed": 42
+}
+```
+
+- `author_id` is the DBLP PID used for the person export.
+- `name_overrides` adjusts display names by stable PID without changing identity.
+- `community_algorithm` accepts `greedy_modularity` or `louvain`.
+- `community_resolution` controls how finely collaboration communities are divided.
+- `layout_seed` makes an unchanged graph render in the same positions.
+
+## Automatic publishing
+
+`.github/workflows/pages.yml` rebuilds and deploys the site:
+
+- after a push to `main`;
+- when manually dispatched from the Actions tab;
+- every Monday at 06:17 in the `Europe/Oslo` timezone.
+
+Every scheduled run first updates `automation/heartbeat.json` and pushes one bot commit with `[skip ci]`. The commit provides repository activity so GitHub does not disable the schedule after 60 inactive days, while the skip annotation prevents a recursive workflow run. Graph JSON and Vite build output are never committed.
+
+If DBLP, a test, or the build fails, the workflow does not deploy and the previous successful Pages version remains online. The website displays the generation date of the last successful graph.
+
+### First deployment
+
+1. Open **Settings → Pages** in the GitHub repository.
+2. Set **Build and deployment → Source** to **GitHub Actions**.
+3. Open **Actions → Refresh and deploy co-author graph** and run the workflow once.
+4. Confirm the deployment at the live-site URL above.
+
+The workflow needs `contents: write`, `pages: write`, and `id-token: write`. If `main` has branch protection, allow `github-actions[bot]` to update `automation/heartbeat.json`; otherwise the weekly heartbeat step will fail before the build.
+
+## Data source
+
+Publication metadata comes from the [official DBLP person export](https://dblp.org/faq/How%2Bcan%2BI%2Bfetch%2Ball%2Bpublications%2Bof%2Bone%2Bspecific%2Bauthor). DBLP metadata is released as open data under CC0 1.0.

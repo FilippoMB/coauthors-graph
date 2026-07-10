@@ -1,13 +1,10 @@
 {
-    "author_name": "F. M. Bianchi",
-    "author_id": "139/5968",
-    "base_node_size": 1.5,
-    "node_size_multiplier": 10,
-    "base_edge_size": 1,
-    "edge_size_multiplier": 0.15,
-    "to_fix": [
-        ["Michael C. Kampffmeyer", "Michael Kampffmeyer"],
-        ["Roland Olsson 0001", "Roland Olsson"]
-    ],
-    "community_algo": "modularity"
+  "author_id": "139/5968",
+  "name_overrides": {
+    "191/9382": "Michael Kampffmeyer",
+    "98/256": "Roland Olsson"
+  },
+  "community_algorithm": "greedy_modularity",
+  "community_resolution": 1.5,
+  "layout_seed": 42
 }
