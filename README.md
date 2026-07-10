@@ -75,6 +75,8 @@ npm --prefix web run build
 
 Every scheduled run first updates `automation/heartbeat.json` and pushes one bot commit with `[skip ci]`. The commit provides repository activity so GitHub does not disable the schedule after 60 inactive days, while the skip annotation prevents a recursive workflow run. Graph JSON and Vite build output are never committed.
 
+Manual runs normally rebuild without a commit. The optional `record_heartbeat` input exercises the same heartbeat path on demand, which is useful when verifying permissions after changing repository settings.
+
 If DBLP, a test, or the build fails, the workflow does not deploy and the previous successful Pages version remains online. The website displays the generation date of the last successful graph.
 
 ### First deployment

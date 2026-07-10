@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      record_heartbeat:
+        description: "Record a heartbeat commit before rebuilding"
+        required: false
+        default: false
+        type: boolean
   schedule:
     - cron: "17 6 * * 1"
       timezone: "Europe/Oslo"
@@ -27,11 +33,11 @@ jobs:
           fetch-depth: 0
 
       - name: Record scheduled workflow heartbeat
-        if: github.event_name == 'schedule'
+        if: github.event_name == 'schedule' || inputs.record_heartbeat
         run: python3 automation/update_heartbeat.py automation/heartbeat.json
 
       - name: Commit scheduled workflow heartbeat
-        if: github.event_name == 'schedule'
+        if: github.event_name == 'schedule' || inputs.record_heartbeat
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
