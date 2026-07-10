@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   communityColor,
   edgeWidth,
-  labeledNodeIds,
   nodeSize,
+  originalNodePositions,
   publicationsForNode,
   resolveTheme,
   validateGraphData,
@@ -42,23 +42,27 @@ describe("graph data", () => {
   });
 
   it("scales visual weight monotonically and clamps extremes", () => {
-    expect(nodeSize(1)).toBeGreaterThanOrEqual(20);
+    expect(nodeSize(1)).toBeGreaterThanOrEqual(24);
     expect(nodeSize(10)).toBeGreaterThan(nodeSize(1));
-    expect(nodeSize(10000)).toBe(54);
-    expect(nodeSize(1, true)).toBe(68);
+    expect(nodeSize(10000)).toBe(60);
+    expect(nodeSize(1, true)).toBe(74);
     expect(edgeWidth(10)).toBeGreaterThan(edgeWidth(1));
     expect(edgeWidth(10000)).toBe(8);
-  });
-
-  it("labels the focal author and strongest collaborators", () => {
-    const labels = labeledNodeIds(data.nodes, 1);
-    expect([...labels]).toEqual(["a", "b"]);
   });
 
   it("returns publications shared with the focal author", () => {
     expect(publicationsForNode(data, "b").map((item) => item.id)).toEqual(["p1", "p2"]);
     expect(publicationsForNode(data, "c")).toEqual([]);
     expect(publicationsForNode(data, "a")).toHaveLength(2);
+  });
+
+  it("restores each node to its generated position", () => {
+    const positions = originalNodePositions([
+      { id: "a", x: 12.5, y: -4 },
+      { id: "b", x: 7, y: 9 },
+    ]);
+    expect(positions.get("a")).toEqual({ x: 12.5, y: -4 });
+    expect(positions.get("b")).toEqual({ x: 7, y: 9 });
   });
 
   it("resolves adaptive themes and theme-specific colors", () => {

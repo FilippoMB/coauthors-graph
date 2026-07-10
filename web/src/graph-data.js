@@ -66,28 +66,15 @@ export function validateGraphData(value) {
 
 export function nodeSize(publicationCount, isFocal = false) {
   if (isFocal) {
-    return 68;
+    return 74;
   }
   const count = Math.max(0, Number(publicationCount) || 0);
-  return Math.min(54, Math.max(20, 16 + 7 * Math.log2(1 + count)));
+  return Math.min(60, Math.max(24, 19 + 7.5 * Math.log2(1 + count)));
 }
 
 export function edgeWidth(publicationCount) {
   const count = Math.max(0, Number(publicationCount) || 0);
   return Math.min(8, Math.max(1, 0.75 + 1.2 * Math.sqrt(count)));
-}
-
-export function labeledNodeIds(nodes, collaboratorLimit = 8) {
-  const focal = nodes.find((node) => node.is_focal);
-  const collaborators = nodes
-    .filter((node) => !node.is_focal)
-    .sort(
-      (left, right) =>
-        right.publication_count - left.publication_count ||
-        left.label.localeCompare(right.label),
-    )
-    .slice(0, collaboratorLimit);
-  return new Set([...(focal ? [focal.id] : []), ...collaborators.map((node) => node.id)]);
 }
 
 export function communityColor(community, theme) {
@@ -109,6 +96,10 @@ export function publicationsForNode(data, nodeId) {
     publicationIds = new Set(edge?.publication_ids ?? []);
   }
   return data.publications.filter((publication) => publicationIds.has(publication.id));
+}
+
+export function originalNodePositions(nodes) {
+  return new Map(nodes.map((node) => [node.id, { x: node.x, y: node.y }]));
 }
 
 export function resolveTheme(storedTheme, prefersDark) {

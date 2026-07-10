@@ -3,12 +3,12 @@ import cytoscape from "cytoscape";
 import {
   communityColor,
   edgeWidth,
-  labeledNodeIds,
   nodeSize,
   publicationsForNode,
   resolveTheme,
   validateGraphData,
 } from "./graph-data.js";
+import { restoreGeneratedLayout } from "./graph-layout.js";
 import "./styles.css";
 
 const elements = {
@@ -18,7 +18,7 @@ const elements = {
   loading: document.querySelector("#loading"),
   error: document.querySelector("#error"),
   errorMessage: document.querySelector("#error-message"),
-  fitButton: document.querySelector("#fit-button"),
+  resetButton: document.querySelector("#reset-button"),
   themeButton: document.querySelector("#theme-button"),
   tooltip: document.querySelector("#tooltip"),
   tooltipName: document.querySelector("#tooltip-name"),
@@ -50,7 +50,7 @@ async function initialize() {
     renderMetadata(graphData);
     graph = createGraph(graphData);
     bindGraphEvents();
-    elements.fitButton.addEventListener("click", fitGraph);
+    elements.resetButton.addEventListener("click", resetGraph);
     elements.detailsClose.addEventListener("click", clearSelection);
     elements.loading.hidden = true;
   } catch (error) {
@@ -59,13 +59,13 @@ async function initialize() {
 }
 
 function createGraph(data) {
-  const labelIds = labeledNodeIds(data.nodes);
   const nodes = data.nodes.map((node) => ({
     data: {
       ...node,
-      display_label: labelIds.has(node.id) ? node.short_label : "",
+      display_label: node.label,
       size: nodeSize(node.publication_count, node.is_focal),
       shape: node.is_focal ? "star" : "ellipse",
+      font_size: node.is_focal ? 18 : 15,
       color: communityColor(node.community, activeTheme),
       label_color: activeTheme === "dark" ? "#e8eef8" : "#172033",
       label_outline: activeTheme === "dark" ? "#07111f" : "#f6f8fc",
@@ -87,7 +87,7 @@ function createGraph(data) {
   return cytoscape({
     container: document.querySelector("#cy"),
     elements: { nodes, edges },
-    layout: { name: "preset", fit: true, padding: 84 },
+    layout: { name: "preset", fit: true, padding: 128 },
     minZoom: 0.18,
     maxZoom: 3.2,
     wheelSensitivity: 0.22,
@@ -104,15 +104,22 @@ function createGraph(data) {
           label: "data(display_label)",
           color: "data(label_color)",
           "font-family": "Inter, ui-sans-serif, system-ui, sans-serif",
-          "font-size": 13,
-          "font-weight": 650,
+          "font-size": "data(font_size)",
+          "font-weight": 700,
           "text-outline-color": "data(label_outline)",
-          "text-outline-width": 3,
+          "text-outline-width": 4,
           "text-valign": "bottom",
-          "text-margin-y": 9,
-          "min-zoomed-font-size": 8,
+          "text-margin-y": 11,
+          "text-wrap": "wrap",
+          "text-max-width": 150,
+          "min-zoomed-font-size": 4,
+          "shadow-blur": 18,
+          "shadow-color": "data(color)",
+          "shadow-opacity": 0.3,
+          "shadow-offset-x": 0,
+          "shadow-offset-y": 3,
           "overlay-opacity": 0,
-          "transition-property": "opacity, border-width, border-color",
+          "transition-property": "opacity, border-width, border-color, shadow-opacity",
           "transition-duration": "160ms",
         },
       },
@@ -122,6 +129,9 @@ function createGraph(data) {
           "background-color": "data(focal_color)",
           "border-width": 3,
           "border-color": "data(focal_border)",
+          "shadow-blur": 28,
+          "shadow-color": "data(focal_border)",
+          "shadow-opacity": 0.6,
           "z-index": 10,
         },
       },
@@ -150,6 +160,8 @@ function createGraph(data) {
         style: {
           "border-width": 5,
           "border-color": "data(selection_border)",
+          "shadow-opacity": 0.75,
+          "shadow-blur": 30,
         },
       },
     ],
@@ -282,8 +294,12 @@ function positionTooltip(position) {
   elements.tooltip.style.top = `${position.y + 18}px`;
 }
 
-function fitGraph() {
-  graph?.animate({ fit: { eles: graph.elements(), padding: 84 }, duration: 420 });
+function resetGraph() {
+  if (!graph) {
+    return;
+  }
+  clearSelection();
+  restoreGeneratedLayout(graph, graphData.nodes);
 }
 
 function showError(error) {

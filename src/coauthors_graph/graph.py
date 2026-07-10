@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import Counter
 from datetime import datetime, timezone
 from itertools import combinations
+from math import sqrt
 from typing import Any, Callable
 
 import networkx as nx
@@ -35,8 +36,9 @@ def build_graph_document(
         graph,
         seed=config.layout_seed,
         weight="publication_count",
-        scale=1000,
-        iterations=300,
+        k=1.6 / sqrt(graph.number_of_nodes()),
+        scale=1250,
+        iterations=400,
     )
     publications_by_id = {
         publication.key: publication for publication in profile.publications

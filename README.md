@@ -4,7 +4,7 @@ A modern, interactive view of [Filippo Maria Bianchi's](https://dblp.org/pid/139
 
 **Live site:** [filippomb.github.io/coauthors-graph](https://filippomb.github.io/coauthors-graph/)
 
-The graph uses color for collaboration communities, node size for publication frequency, and edge width for the number of papers shared by each author pair. The focal author is the star-shaped node. Hover to isolate a neighborhood, click an author to inspect shared publications, drag nodes to explore, or use the fit button to restore the full view.
+The graph uses color for collaboration communities, node size for publication frequency, and edge width for the number of papers shared by each author pair. The focal author is the star-shaped node. Hover to isolate a neighborhood, click an author to inspect shared publications, drag nodes to explore, or use **Reset layout** to restore the generated positions and viewport.
 
 ## How it works
 
@@ -22,7 +22,7 @@ Python 3.12+ and Node.js 24 are recommended.
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install --upgrade pip ".[test]"
+python -m pip install --upgrade pip -e ".[test]"
 python -m coauthors_graph --config config.json --output web/public/data/graph.json
 
 cd web
