@@ -4,7 +4,7 @@ A modern, interactive view of [Filippo Maria Bianchi's](https://dblp.org/pid/139
 
 **Live site:** [filippomb.github.io/coauthors-graph](https://filippomb.github.io/coauthors-graph/)
 
-The graph uses color for collaboration communities, node size for publication frequency, and edge width for the number of works shared by each author pair. The focal author is the star-shaped node. Node labels use initials for clarity; hover or select a node to see the full name. Click an author to inspect shared publications, drag nodes to explore, or use **Reset layout** to restore the generated positions and viewport.
+The graph uses color for collaboration communities, node size for publication frequency, and edge width for the number of works shared by each author pair. The focal author is the large white node. Node labels use initials for clarity; hover or select a node to see the full name. Click an author to inspect shared publications, drag nodes to explore, or use **Reset layout** to restore the generated positions and viewport.
 
 ## How it works
 

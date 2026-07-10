@@ -143,7 +143,7 @@ export function isSafePublicationUrl(value) {
 
 export function nodeSize(publicationCount, isFocal = false) {
   if (isFocal) {
-    return 74;
+    return 84;
   }
   const count = Math.max(0, Number(publicationCount) || 0);
   return Math.min(60, Math.max(24, 19 + 7.5 * Math.log2(1 + count)));

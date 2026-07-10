@@ -12,6 +12,9 @@ import {
 import { restoreGeneratedLayout } from "./graph-layout.js";
 import "./styles.css";
 
+const COAUTHOR_LABEL_SIZE = 18;
+const FOCAL_AUTHOR_LABEL_SIZE = 21;
+
 const elements = {
   title: document.querySelector("#page-title"),
   summary: document.querySelector("#graph-summary"),
@@ -65,12 +68,11 @@ function createGraph(data) {
       ...node,
       display_label: nodeDisplayLabel(node),
       size: nodeSize(node.publication_count, node.is_focal),
-      shape: node.is_focal ? "star" : "ellipse",
-      font_size: node.is_focal ? 18 : 15,
+      font_size: node.is_focal ? FOCAL_AUTHOR_LABEL_SIZE : COAUTHOR_LABEL_SIZE,
       color: communityColor(node.community, activeTheme),
       label_color: activeTheme === "dark" ? "#e8eef8" : "#172033",
       label_outline: activeTheme === "dark" ? "#07111f" : "#f6f8fc",
-      focal_color: activeTheme === "dark" ? "#f8fafc" : "#111827",
+      focal_color: "#ffffff",
       focal_border: activeTheme === "dark" ? "#60a5fa" : "#2563eb",
       selection_border: activeTheme === "dark" ? "#ffffff" : "#0f172a",
     },
@@ -98,7 +100,7 @@ function createGraph(data) {
         style: {
           width: "data(size)",
           height: "data(size)",
-          shape: "data(shape)",
+          shape: "ellipse",
           "background-color": "data(color)",
           "border-width": 2,
           "border-color": "data(label_outline)",
@@ -324,7 +326,6 @@ function updateGraphTheme(theme) {
     node.data("color", communityColor(node.data("community"), theme));
     node.data("label_color", theme === "dark" ? "#e8eef8" : "#172033");
     node.data("label_outline", theme === "dark" ? "#07111f" : "#f6f8fc");
-    node.data("focal_color", theme === "dark" ? "#f8fafc" : "#111827");
     node.data("focal_border", theme === "dark" ? "#60a5fa" : "#2563eb");
     node.data("selection_border", theme === "dark" ? "#ffffff" : "#0f172a");
   });

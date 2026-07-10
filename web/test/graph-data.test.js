@@ -112,7 +112,7 @@ describe("graph data", () => {
     expect(nodeSize(1)).toBeGreaterThanOrEqual(24);
     expect(nodeSize(10)).toBeGreaterThan(nodeSize(1));
     expect(nodeSize(10000)).toBe(60);
-    expect(nodeSize(1, true)).toBe(74);
+    expect(nodeSize(1, true)).toBe(84);
     expect(edgeWidth(10)).toBeGreaterThan(edgeWidth(1));
     expect(edgeWidth(10000)).toBe(8);
   });
