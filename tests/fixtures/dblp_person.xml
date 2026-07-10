@@ -11,6 +11,7 @@
       <title>Graph Models with H<sub>2</sub>O.</title>
       <year>2024</year>
       <journal>Journal of Examples</journal>
+      <ee>https://doi.org/10.1000/example.2024</ee>
     </article>
   </r>
   <r>
@@ -21,6 +22,7 @@
       <title>A useful preprint.</title>
       <year>2023</year>
       <journal>CoRR</journal>
+      <ee>https://arxiv.org/abs/2301.00001</ee>
     </article>
   </r>
   <r>
@@ -36,15 +38,51 @@
     <book key="books/example/Example21">
       <author pid="01/1">Alice Example</author>
       <author pid="05/5">Book Collaborator</author>
-      <title>An excluded book.</title>
+      <title>An authored book.</title>
       <year>2021</year>
+      <publisher>Example Press</publisher>
     </book>
   </r>
   <r>
     <proceedings key="conf/example/2020">
       <editor pid="01/1">Alice Example</editor>
-      <title>Excluded proceedings.</title>
+      <editor pid="06/6">Evan Editor</editor>
+      <title>Edited proceedings.</title>
       <year>2020</year>
+      <booktitle>EXAMPLE 2020</booktitle>
     </proceedings>
+  </r>
+  <r>
+    <incollection key="books/example/Chapter19">
+      <author pid="01/1">Alice Example</author>
+      <author pid="07/7">Grace Chapter</author>
+      <title>A book chapter.</title>
+      <year>2019</year>
+      <booktitle>Collected Examples</booktitle>
+    </incollection>
+  </r>
+  <r>
+    <data key="data/example/Dataset18">
+      <author pid="01/1">Alice Example</author>
+      <author pid="08/8">Heidi Data</author>
+      <title>An example dataset.</title>
+      <year>2018</year>
+      <publisher>Example Repository</publisher>
+    </data>
+  </r>
+  <r>
+    <phdthesis key="phd/example/Thesis17">
+      <author pid="01/1">Alice Example</author>
+      <title>An example thesis.</title>
+      <year>2017</year>
+      <school>Example University</school>
+    </phdthesis>
+  </r>
+  <r>
+    <www key="homepages/example/Example16">
+      <author pid="01/1">Alice Example</author>
+      <title>An excluded web page.</title>
+      <year>2016</year>
+    </www>
   </r>
 </dblpperson>

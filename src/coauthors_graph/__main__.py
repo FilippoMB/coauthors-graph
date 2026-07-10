@@ -4,17 +4,20 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import sys
 
 from .config import ConfigError, load_config
 from .dblp import DblpError, fetch_person_xml, parse_person_xml
 from .graph import GraphError, build_graph_document
+from .merge import MergeError, combine_profiles
+from .semantic_scholar import SemanticScholarError, fetch_author_profile
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Generate a static co-author graph data file from DBLP."
+        description="Generate a static co-author graph from DBLP and Semantic Scholar."
     )
     parser.add_argument(
         "--config",
@@ -32,7 +35,12 @@ def build_parser() -> argparse.ArgumentParser:
 def generate(config_path: str | Path, output_path: str | Path) -> Path:
     config = load_config(config_path)
     xml_data = fetch_person_xml(config.author_id)
-    profile = parse_person_xml(xml_data, config.author_id)
+    dblp_profile = parse_person_xml(xml_data, config.author_id)
+    semantic_scholar_profile = fetch_author_profile(
+        config.semantic_scholar_author_id,
+        api_key=os.environ.get("SEMANTIC_SCHOLAR_API_KEY"),
+    )
+    profile = combine_profiles(dblp_profile, semantic_scholar_profile, config)
     document = build_graph_document(profile, config)
 
     destination = Path(output_path)
@@ -50,7 +58,14 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         destination = generate(args.config, args.output)
-    except (ConfigError, DblpError, GraphError, OSError) as error:
+    except (
+        ConfigError,
+        DblpError,
+        SemanticScholarError,
+        MergeError,
+        GraphError,
+        OSError,
+    ) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
 

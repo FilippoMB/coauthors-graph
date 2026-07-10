@@ -3,17 +3,29 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
 from html import unescape
+import re
 import xml.etree.ElementTree as ET
 
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
+
+from .http import retrying_session
+from .models import Author, PersonProfile, Publication
 
 
 DBLP_BASE_URL = "https://dblp.org"
-SUPPORTED_RECORD_TYPES = frozenset({"article", "inproceedings"})
+SUPPORTED_RECORD_TYPES = frozenset(
+    {
+        "article",
+        "inproceedings",
+        "incollection",
+        "book",
+        "proceedings",
+        "phdthesis",
+        "mastersthesis",
+        "data",
+    }
+)
 USER_AGENT = (
     "coauthors-graph/1.0 "
     "(+https://github.com/FilippoMB/coauthors-graph; weekly DBLP profile export)"
@@ -22,30 +34,6 @@ USER_AGENT = (
 
 class DblpError(RuntimeError):
     """Raised when DBLP data cannot be fetched or parsed safely."""
-
-
-@dataclass(frozen=True)
-class Author:
-    pid: str
-    name: str
-
-
-@dataclass(frozen=True)
-class Publication:
-    key: str
-    title: str
-    year: int
-    venue: str
-    url: str
-    authors: tuple[Author, ...]
-
-
-@dataclass(frozen=True)
-class PersonProfile:
-    pid: str
-    name: str
-    source_url: str
-    publications: tuple[Publication, ...]
 
 
 def person_export_url(author_id: str) -> str:
@@ -60,7 +48,7 @@ def fetch_person_xml(
     """Fetch a DBLP person export, retrying only transient HTTP failures."""
 
     owned_session = session is None
-    active_session = session or _retrying_session()
+    active_session = session or retrying_session()
     url = person_export_url(author_id)
     try:
         response = active_session.get(
@@ -105,26 +93,9 @@ def parse_person_xml(xml_data: bytes, expected_pid: str) -> PersonProfile:
     return PersonProfile(
         pid=person_pid,
         name=person_name,
-        source_url=person_export_url(expected_pid),
+        source_urls=(person_export_url(expected_pid),),
         publications=publications,
     )
-
-
-def _retrying_session() -> requests.Session:
-    retry = Retry(
-        total=3,
-        connect=3,
-        read=3,
-        status=3,
-        backoff_factor=1.0,
-        status_forcelist=(429, 500, 502, 503, 504),
-        allowed_methods=frozenset({"GET"}),
-        respect_retry_after_header=True,
-    )
-    adapter = HTTPAdapter(max_retries=retry)
-    session = requests.Session()
-    session.mount("https://", adapter)
-    return session
 
 
 def _parse_publications(root: ET.Element) -> Iterable[Publication]:
@@ -149,12 +120,11 @@ def _parse_publications(root: ET.Element) -> Iterable[Publication]:
                 f"Publication {key} has an invalid year: {year_text!r}"
             ) from error
 
-        venue = _element_text(record.find("journal"))
-        if not venue:
-            venue = _element_text(record.find("booktitle")) or "DBLP"
+        venue = _publication_venue(record)
 
         authors_by_pid: dict[str, Author] = {}
-        for author_element in record.findall("author"):
+        contributor_elements = (*record.findall("author"), *record.findall("editor"))
+        for author_element in contributor_elements:
             pid = _clean_text(author_element.get("pid"))
             name = _element_text(author_element)
             if not pid:
@@ -164,16 +134,65 @@ def _parse_publications(root: ET.Element) -> Iterable[Publication]:
             authors_by_pid.setdefault(pid, Author(pid=pid, name=name))
 
         if not authors_by_pid:
-            raise DblpError(f"Publication {key} contains no authors")
+            raise DblpError(f"Publication {key} contains no authors or editors")
+
+        doi, arxiv_id = _external_identifiers(record)
+        external_ids = [("DBLP", key)]
+        if doi:
+            external_ids.append(("DOI", doi))
+        if arxiv_id:
+            external_ids.append(("ArXiv", arxiv_id))
 
         yield Publication(
-            key=key,
+            key=f"dblp:{key}",
             title=title,
             year=year,
             venue=venue,
             url=f"{DBLP_BASE_URL}/rec/{key}.html",
             authors=tuple(authors_by_pid.values()),
+            source="dblp",
+            record_type=record.tag,
+            doi=doi,
+            arxiv_id=arxiv_id,
+            is_preprint=venue == "Arxiv",
+            external_ids=tuple(external_ids),
+            provenance=("dblp",),
+            source_ids=(f"dblp:{key}",),
         )
+
+
+def _publication_venue(record: ET.Element) -> str:
+    candidates = (
+        _element_text(record.find("journal")),
+        _element_text(record.find("booktitle")),
+        _element_text(record.find("publisher")),
+        _element_text(record.find("school")),
+        _element_text(record.find("series")),
+    )
+    venue = next((candidate for candidate in candidates if candidate), "DBLP")
+    return "Arxiv" if venue.casefold() == "corr" else venue
+
+
+def _external_identifiers(record: ET.Element) -> tuple[str | None, str | None]:
+    doi: str | None = None
+    arxiv_id: str | None = None
+    for element in record.findall("ee"):
+        url = _element_text(element)
+        doi_match = re.search(r"(?:doi\.org/|doi:)(10\.\d{4,9}/\S+)", url, re.I)
+        if doi_match:
+            candidate = doi_match.group(1).rstrip(".,;)").casefold()
+            if candidate.startswith("10.48550/arxiv."):
+                arxiv_id = candidate.removeprefix("10.48550/arxiv.")
+            elif doi is None:
+                doi = candidate
+
+        arxiv_match = re.search(r"arxiv\.org/(?:abs|pdf)/([^?#]+)", url, re.I)
+        if arxiv_match:
+            arxiv_id = arxiv_match.group(1).removesuffix(".pdf")
+
+    if arxiv_id:
+        arxiv_id = re.sub(r"v\d+$", "", arxiv_id, flags=re.I)
+    return doi, arxiv_id
 
 
 def _element_text(element: ET.Element | None) -> str:

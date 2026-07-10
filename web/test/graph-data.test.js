@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   communityColor,
   edgeWidth,
+  isSafePublicationUrl,
+  nodeDisplayLabel,
   nodeSize,
   originalNodePositions,
   publicationsForNode,
@@ -11,34 +13,99 @@ import {
 } from "../src/graph-data.js";
 
 const data = {
-  meta: { schema_version: 1, focal_author_id: "a" },
+  meta: { schema_version: 2, focal_author_id: "a" },
   nodes: [
-    { id: "a", label: "Alice", is_focal: true, publication_count: 10 },
-    { id: "b", label: "Bob", is_focal: false, publication_count: 3 },
-    { id: "c", label: "Carol", is_focal: false, publication_count: 1 },
+    {
+      id: "a",
+      label: "Alice Maria Example",
+      short_label: "A. M. Example",
+      is_focal: true,
+      publication_count: 10,
+    },
+    {
+      id: "b",
+      label: "Bob Builder",
+      short_label: "B. Builder",
+      is_focal: false,
+      publication_count: 3,
+    },
+    {
+      id: "c",
+      label: "Carol Researcher",
+      short_label: "C. Researcher",
+      is_focal: false,
+      publication_count: 1,
+    },
   ],
   edges: [
     { source: "a", target: "b", publication_ids: ["p1", "p2"] },
     { source: "b", target: "c", publication_ids: ["p2"] },
   ],
   publications: [
-    { id: "p1", url: "https://dblp.org/rec/p1", title: "One" },
-    { id: "p2", url: "https://dblp.org/rec/p2", title: "Two" },
+    {
+      id: "p1",
+      url: "https://dblp.org/rec/p1",
+      title: "One",
+      source: "dblp",
+      record_type: "article",
+      provenance: ["dblp"],
+      external_ids: { DBLP: ["p1"] },
+      author_ids: ["a", "b"],
+    },
+    {
+      id: "p2",
+      url: "https://doi.org/10.1000/example",
+      title: "Two",
+      source: "semantic_scholar",
+      record_type: "article",
+      provenance: ["semantic_scholar"],
+      external_ids: { DOI: ["10.1000/example"] },
+      author_ids: ["a", "b", "c"],
+    },
   ],
 };
 
 describe("graph data", () => {
-  it("validates the supported schema and DBLP links", () => {
+  it("validates schema-v2 data and rejects stale or unsafe metadata", () => {
     expect(validateGraphData(data)).toBe(data);
-    expect(() => validateGraphData({ ...data, meta: { schema_version: 2 } })).toThrow(
+    expect(() => validateGraphData({ ...data, meta: { schema_version: 1 } })).toThrow(
       "Unsupported graph data version",
     );
     expect(() =>
       validateGraphData({
         ...data,
-        publications: [{ id: "bad", url: "javascript:alert(1)" }],
+        publications: [
+          { ...data.publications[0], url: "javascript:alert(1)" },
+          data.publications[1],
+        ],
       }),
-    ).toThrow("unsafe publication link");
+    ).toThrow("invalid publication metadata");
+  });
+
+  it("allows only exact HTTPS publication providers and paths", () => {
+    for (const url of [
+      "https://dblp.org/rec/journals/example/Paper.html",
+      "https://doi.org/10.1000/example",
+      "https://arxiv.org/abs/2401.01234",
+      "https://www.semanticscholar.org/paper/abc123",
+    ]) {
+      expect(isSafePublicationUrl(url)).toBe(true);
+    }
+    for (const url of [
+      "http://doi.org/10.1000/example",
+      "javascript:alert(1)",
+      "https://doi.org.evil.example/10.1000/example",
+      "https://dblp.org/pid/01/1",
+      "https://user@arxiv.org/abs/2401.01234",
+      "https://arxiv.org/abs/",
+    ]) {
+      expect(isSafePublicationUrl(url)).toBe(false);
+    }
+  });
+
+  it("uses initials on nodes without changing the full author name", () => {
+    expect(nodeDisplayLabel(data.nodes[0])).toBe("A. M. Example");
+    expect(data.nodes[0].label).toBe("Alice Maria Example");
   });
 
   it("scales visual weight monotonically and clamps extremes", () => {

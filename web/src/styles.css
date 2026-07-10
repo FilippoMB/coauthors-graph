@@ -556,6 +556,12 @@ h1 {
   line-height: 1.4;
 }
 
+.publication-authors {
+  color: color-mix(in srgb, var(--muted) 82%, var(--text));
+  font-size: 0.65rem;
+  line-height: 1.45;
+}
+
 @media (max-width: 720px) {
   .topbar {
     align-items: flex-start;

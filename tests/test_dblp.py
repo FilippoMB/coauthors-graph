@@ -11,18 +11,35 @@ from coauthors_graph.dblp import DblpError, fetch_person_xml, parse_person_xml
 FIXTURE = Path(__file__).parent / "fixtures" / "dblp_person.xml"
 
 
-def test_parse_person_xml_includes_supported_publications() -> None:
+def test_parse_person_xml_includes_authored_and_edited_scholarly_outputs() -> None:
     profile = parse_person_xml(FIXTURE.read_bytes(), "01/1")
 
     assert profile.pid == "01/1"
     assert profile.name == "Alice Example"
-    assert len(profile.publications) == 3
+    assert len(profile.publications) == 8
     assert {publication.key for publication in profile.publications} == {
-        "journals/example/ExampleBC24",
-        "journals/corr/abs-2301-00001",
-        "conf/example/ExampleD22",
+        "dblp:journals/example/ExampleBC24",
+        "dblp:journals/corr/abs-2301-00001",
+        "dblp:conf/example/ExampleD22",
+        "dblp:books/example/Example21",
+        "dblp:conf/example/2020",
+        "dblp:books/example/Chapter19",
+        "dblp:data/example/Dataset18",
+        "dblp:phd/example/Thesis17",
     }
     assert profile.publications[0].title == "Graph Models with H2O."
+    assert profile.publications[0].doi == "10.1000/example.2024"
+    preprint = profile.publications[1]
+    assert preprint.venue == "Arxiv"
+    assert preprint.is_preprint is True
+    assert preprint.arxiv_id == "2301.00001"
+    proceedings = next(
+        publication
+        for publication in profile.publications
+        if publication.record_type == "proceedings"
+    )
+    assert [author.pid for author in proceedings.authors] == ["01/1", "06/6"]
+    assert proceedings.venue == "EXAMPLE 2020"
 
 
 @pytest.mark.parametrize(
@@ -31,7 +48,7 @@ def test_parse_person_xml_includes_supported_publications() -> None:
         (b"<broken", "malformed XML"),
         (b"<other />", "Unexpected DBLP XML root"),
         (
-            b'<dblpperson name="Alice" pid="01/1"><r><book /></r></dblpperson>',
+            b'<dblpperson name="Alice" pid="01/1"><r><www /></r></dblpperson>',
             "no supported publications",
         ),
     ],

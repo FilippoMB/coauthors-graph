@@ -1,9 +1,31 @@
 {
   "author_id": "139/5968",
+  "semantic_scholar_author_id": "14553624",
+  "minimum_publication_year": 2013,
   "name_overrides": {
     "191/9382": "Michael Kampffmeyer",
     "98/256": "Roland Olsson"
   },
+  "author_id_overrides": {},
+  "excluded_publication_ids": [],
+  "duplicate_groups": [
+    [
+      "arxiv:1805.03473",
+      "doi:10.1016/j.patcog.2019.106973"
+    ],
+    [
+      "arxiv:1907.00481",
+      "dblp:conf/icml/BianchiGA20"
+    ],
+    [
+      "arxiv:2501.09821",
+      "dblp:journals/tmlr/CastellanaB26"
+    ],
+    [
+      "s2:e284ae76d27f481c758c748f4e67313eded3d621",
+      "doi:10.1109/tpami.2021.3054830"
+    ]
+  ],
   "community_algorithm": "greedy_modularity",
   "community_resolution": 1.5,
   "layout_seed": 42

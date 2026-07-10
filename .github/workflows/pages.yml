@@ -62,7 +62,9 @@ jobs:
           python -m ruff check src tests automation
           python -m ruff format --check src tests automation
 
-      - name: Generate graph data from DBLP
+      - name: Generate graph data from DBLP and Semantic Scholar
+        env:
+          SEMANTIC_SCHOLAR_API_KEY: ${{ secrets.SEMANTIC_SCHOLAR_API_KEY }}
         run: python -m coauthors_graph --config config.json --output web/public/data/graph.json
 
       - name: Set up Node.js

@@ -7,11 +7,12 @@ from datetime import datetime, timezone
 from itertools import combinations
 from math import sqrt
 from typing import Any, Callable
+from urllib.parse import urlsplit
 
 import networkx as nx
 
 from .config import Config
-from .dblp import PersonProfile, Publication
+from .models import PersonProfile, Publication
 
 
 class GraphError(RuntimeError):
@@ -89,14 +90,7 @@ def build_graph_document(
         )
 
     publications = [
-        {
-            "id": publication.key,
-            "title": publication.title,
-            "year": publication.year,
-            "venue": publication.venue,
-            "url": publication.url,
-            "author_ids": [author.pid for author in publication.authors],
-        }
+        _publication_document(publication)
         for publication in sorted(
             profile.publications,
             key=lambda item: (-item.year, item.key),
@@ -106,9 +100,9 @@ def build_graph_document(
 
     return {
         "meta": {
-            "schema_version": 1,
+            "schema_version": 2,
             "generated_at": generated_at.isoformat().replace("+00:00", "Z"),
-            "source_url": profile.source_url,
+            "source_urls": list(profile.source_urls),
             "focal_author_id": profile.pid,
             "publication_count": len(publications),
             "node_count": len(nodes),
@@ -199,10 +193,71 @@ def _display_name(
 
 def _short_label(name: str) -> str:
     parts = name.split()
+    if parts and parts[-1].isdigit() and len(parts[-1]) == 4:
+        parts.pop()
     if len(parts) < 2:
-        return name
+        return " ".join(parts) or name
     initials = " ".join(f"{part[0]}." for part in parts[:-1] if part)
     return f"{initials} {parts[-1]}"
+
+
+def _publication_document(publication: Publication) -> dict[str, Any]:
+    _validate_publication_url(publication.url)
+    external_ids: dict[str, list[str]] = {}
+    for key, value in publication.external_ids:
+        values = external_ids.setdefault(key, [])
+        if value not in values:
+            values.append(value)
+    for values in external_ids.values():
+        values.sort(key=str.casefold)
+
+    return {
+        "id": publication.key,
+        "canonical_source_id": publication.key,
+        "title": publication.title,
+        "year": publication.year,
+        "venue": publication.venue,
+        "url": publication.url,
+        "author_ids": [author.pid for author in publication.authors],
+        "source": publication.source,
+        "provenance": list(publication.provenance),
+        "record_type": publication.record_type,
+        "doi": publication.doi,
+        "arxiv_id": publication.arxiv_id,
+        "semantic_scholar_id": publication.semantic_scholar_id,
+        "is_preprint": publication.is_preprint,
+        "external_ids": external_ids,
+        "source_ids": list(publication.source_ids),
+    }
+
+
+def _validate_publication_url(url: str) -> None:
+    try:
+        parsed = urlsplit(url)
+        port = parsed.port
+    except ValueError as error:
+        raise GraphError(f"Unsafe publication URL: {url}") from error
+    if (
+        parsed.scheme != "https"
+        or parsed.username is not None
+        or parsed.password is not None
+        or port is not None
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise GraphError(f"Unsafe publication URL: {url}")
+
+    allowed_paths = {
+        "dblp.org": "/rec/",
+        "doi.org": "/",
+        "arxiv.org": "/abs/",
+        "www.semanticscholar.org": "/paper/",
+    }
+    required_prefix = allowed_paths.get(parsed.hostname or "")
+    if not required_prefix or not parsed.path.startswith(required_prefix):
+        raise GraphError(f"Unsafe publication URL: {url}")
+    if parsed.path == required_prefix:
+        raise GraphError(f"Publication URL is missing an identifier: {url}")
 
 
 def _utc_now() -> datetime:

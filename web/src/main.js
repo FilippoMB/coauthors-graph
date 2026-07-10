@@ -3,6 +3,7 @@ import cytoscape from "cytoscape";
 import {
   communityColor,
   edgeWidth,
+  nodeDisplayLabel,
   nodeSize,
   publicationsForNode,
   resolveTheme,
@@ -62,7 +63,7 @@ function createGraph(data) {
   const nodes = data.nodes.map((node) => ({
     data: {
       ...node,
-      display_label: node.label,
+      display_label: nodeDisplayLabel(node),
       size: nodeSize(node.publication_count, node.is_focal),
       shape: node.is_focal ? "star" : "ellipse",
       font_size: node.is_focal ? 18 : 15,
@@ -249,6 +250,7 @@ function publicationItem(publication) {
   const link = document.createElement("a");
   const title = document.createElement("span");
   const metadata = document.createElement("span");
+  const authors = document.createElement("span");
 
   link.href = publication.url;
   link.target = "_blank";
@@ -257,7 +259,12 @@ function publicationItem(publication) {
   title.textContent = publication.title;
   metadata.className = "publication-meta";
   metadata.textContent = `${publication.year} · ${publication.venue}`;
-  link.append(title, metadata);
+  authors.className = "publication-authors";
+  authors.textContent = publication.author_ids
+    .map((authorId) => graphData.nodes.find((node) => node.id === authorId)?.label)
+    .filter(Boolean)
+    .join(", ");
+  link.append(title, metadata, authors);
   item.append(link);
   return item;
 }

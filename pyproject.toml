@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "coauthors-graph"
-version = "1.0.0"
-description = "Generate a static, interactive co-author graph from a DBLP profile."
+version = "2.0.0"
+description = "Generate a static, interactive co-author graph from scholarly profiles."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

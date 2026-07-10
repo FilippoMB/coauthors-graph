@@ -1,0 +1,72 @@
+[
+  {
+    "offset": 0,
+    "next": 2,
+    "data": [
+      {
+        "paperId": "6febc3cad68717fd8f023e05e68281ff87b54077",
+        "title": "Power availability of PV plus thermal batteries in real-world electric power grids",
+        "year": 2023,
+        "venue": "Applied Energy",
+        "publicationVenue": {"name": "Applied Energy", "type": "journal"},
+        "externalIds": {
+          "DOI": "10.1016/j.apenergy.2023.121572",
+          "ArXiv": "2302.01902",
+          "CorpusId": 256615358
+        },
+        "authors": [
+          {"authorId": "1581621470", "name": "Odin Foldvik Eikeland"},
+          {"authorId": "2108486531", "name": "Colin C. Kelsall"},
+          {"authorId": "2171202275", "name": "Kyle Buznitsky"},
+          {"authorId": "2143867555", "name": "Shomik Verma"},
+          {"authorId": "14553624", "name": "F. Bianchi"},
+          {"authorId": "49753558", "name": "Matteo Chiesa"},
+          {"authorId": "5101962", "name": "Asegun Henry"}
+        ],
+        "url": "https://www.semanticscholar.org/paper/6febc3cad68717fd8f023e05e68281ff87b54077",
+        "publicationTypes": null,
+        "journal": {"name": "Applied Energy"},
+        "publicationDate": "2023-10-15"
+      },
+      {
+        "paperId": "standalone-arxiv-paper",
+        "title": "A Standalone Preprint",
+        "year": 2024,
+        "venue": "arXiv.org",
+        "publicationVenue": null,
+        "externalIds": {
+          "DOI": "10.48550/arXiv.2401.01234v2",
+          "ArXiv": "2401.01234v2"
+        },
+        "authors": [
+          {"authorId": "14553624", "name": "F. Bianchi"},
+          {"authorId": "999", "name": "Lorenzo Livi"}
+        ],
+        "url": "https://www.semanticscholar.org/paper/standalone-arxiv-paper",
+        "publicationTypes": null,
+        "journal": null,
+        "publicationDate": null
+      }
+    ]
+  },
+  {
+    "offset": 2,
+    "data": [
+      {
+        "paperId": "older-book",
+        "title": "An Older Book",
+        "year": 2012,
+        "venue": "Example Press",
+        "publicationVenue": {"name": "Example Press", "type": "book"},
+        "externalIds": {},
+        "authors": [
+          {"authorId": "14553624", "name": "F. Bianchi"}
+        ],
+        "url": "https://www.semanticscholar.org/paper/older-book",
+        "publicationTypes": ["Book"],
+        "journal": null,
+        "publicationDate": null
+      }
+    ]
+  }
+]
