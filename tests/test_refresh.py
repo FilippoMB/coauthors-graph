@@ -24,7 +24,7 @@ from coauthors_graph.state import (
     write_json,
 )
 from test_arxiv import config, root
-from test_dblp_api import polar_rows
+from test_dblp_api import POLAR_AUTHOR_IDS, polar_rows
 from test_semantic_scholar import FakeSession
 
 
@@ -66,7 +66,7 @@ def test_new_paper_deduplicates_across_dblp_arxiv_and_baseline():
     paper = document["publications"][0]
     assert paper["arxiv_id"] == "2608.14366"
     assert paper["provenance"] == ["dblp", "arxiv"]
-    assert len(paper["author_ids"]) == 4
+    assert paper["author_ids"] == POLAR_AUTHOR_IDS
     assert len(document["edges"]) == 6
     assert all(edge["publication_count"] == 1 for edge in document["edges"])
     assert all(not node["id"].startswith("provisional:") for node in document["nodes"])
@@ -74,6 +74,36 @@ def test_new_paper_deduplicates_across_dblp_arxiv_and_baseline():
         state["identity_map"][provisional_id("arxiv:2608.14366", "Andrea Federici")]
         == "445/1583"
     )
+
+
+def test_refresh_repairs_saved_pid_sorted_bylines_and_persists_source_order(tmp_path):
+    profile = dblp()
+    paper = profile.publications[0]
+    incorrect = replace(
+        paper, authors=tuple(sorted(paper.authors, key=lambda a: a.pid))
+    )
+    old_profile = replace(profile, publications=(incorrect,))
+    old_graph = build_graph_document(old_profile, config(), clock=clock)
+    _, saved = refresh(
+        config(),
+        bootstrap_state(old_graph, config().author_id),
+        clock=clock,
+        fetchers={"dblp": lambda: old_profile},
+    )
+    document, state = refresh(
+        config(), saved, clock=clock, fetchers={"dblp": dblp, "arxiv": arxiv}
+    )
+    assert document["publications"][0]["author_ids"] == POLAR_AUTHOR_IDS
+    assert document["edges"] == old_graph["edges"]
+    assert [
+        a["pid"]
+        for a in state["sources"]["dblp"]["profile"]["publications"][0]["authors"]
+    ] == POLAR_AUTHOR_IDS
+    restored = load_state(
+        write_json(tmp_path / "state.json", state), config().author_id
+    )
+    cached, _ = refresh(config(), restored, clock=clock, fetchers={"dblp": fail})
+    assert cached["publications"][0]["author_ids"] == POLAR_AUTHOR_IDS
 
 
 def test_healthy_source_can_add_while_dblp_is_down():
@@ -251,6 +281,7 @@ def test_formal_version_replaces_saved_preprint():
         venue="Published Journal",
         doi="10.1000/polar",
         url="https://doi.org/10.1000/polar",
+        authors=tuple(reversed(preprint.authors)),
     )
     document, _ = refresh(
         config(),
@@ -260,3 +291,4 @@ def test_formal_version_replaces_saved_preprint():
     )
     assert len(document["publications"]) == 1
     assert document["publications"][0]["venue"] == "Published Journal"
+    assert document["publications"][0]["author_ids"] == list(reversed(POLAR_AUTHOR_IDS))

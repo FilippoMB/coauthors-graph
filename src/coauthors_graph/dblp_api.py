@@ -56,7 +56,7 @@ def fetch_sparql_profile(author_id: str, *, session) -> PersonProfile:
     if not re.fullmatch(r"[A-Za-z0-9/-]+", author_id):
         raise DblpError("Invalid DBLP PID")
     query = f"""PREFIX dblp: <https://dblp.org/rdf/schema#>
-SELECT DISTINCT ?publication ?title ?year ?type ?venue ?doi ?document ?author ?name ?role WHERE {{
+SELECT DISTINCT ?publication ?title ?year ?type ?venue ?doi ?document ?author ?name ?role ?ordinal WHERE {{
   ?publication (dblp:authoredBy|dblp:editedBy) <https://dblp.org/pid/{author_id}> .
   OPTIONAL {{ ?publication dblp:title ?title }}
   OPTIONAL {{ ?publication dblp:yearOfPublication ?year }}
@@ -66,10 +66,19 @@ SELECT DISTINCT ?publication ?title ?year ?type ?venue ?doi ?document ?author ?n
   OPTIONAL {{ ?publication dblp:documentPage ?document }}
   OPTIONAL {{
     ?publication ?role ?author .
-    VALUES ?role {{ dblp:authoredBy dblp:editedBy }}
+    VALUES (?role ?signatureType) {{
+      (dblp:authoredBy dblp:AuthorSignature)
+      (dblp:editedBy dblp:EditorSignature)
+    }}
     OPTIONAL {{ ?author dblp:primaryCreatorName ?name }}
+    OPTIONAL {{
+      ?publication dblp:hasSignature ?signature .
+      ?signature a ?signatureType ;
+        dblp:signatureCreator ?author ;
+        dblp:signatureOrdinal ?ordinal .
+    }}
   }}
-}} ORDER BY ?publication ?author ?role ?title ?year ?type ?venue ?doi ?document ?name
+}} ORDER BY ?publication ?role ?ordinal ?author ?title ?year ?type ?venue ?doi ?document ?name
 """
     rows = []
     seen_pages = set()
@@ -130,23 +139,10 @@ def parse_sparql_rows(rows: list, author_id: str) -> PersonProfile:
                     raise DblpError(f"Missing or conflicting {field} for {key}")
                 if values:
                     ET.SubElement(record, tag).text = sorted(values)[0]
-            contributors = set()
-            for row in copies:
-                pid = _value(row, "author").removeprefix("https://dblp.org/pid/")
-                name = _value(row, "name")
-                if (
-                    not pid
-                    or not name
-                    or not _value(row, "author").startswith("https://dblp.org/pid/")
-                ):
-                    raise DblpError(f"Missing contributor identity for {key}")
-                role = (
-                    "editor" if _value(row, "role").endswith("editedBy") else "author"
-                )
-                contributors.add((pid, name, role))
+            contributors = _ordered_contributors(copies, key)
             if not any(pid == author_id for pid, _, _ in contributors):
                 raise DblpError(f"Requested author missing from {key}")
-            for pid, name, role in sorted(contributors):
+            for pid, name, role in contributors:
                 ET.SubElement(record, role, pid=pid).text = name
                 if pid == author_id:
                     names.add(name)
@@ -173,6 +169,40 @@ def parse_sparql_rows(rows: list, author_id: str) -> PersonProfile:
         len(warnings),
         not warnings,
     )
+
+
+def _ordered_contributors(rows: list[dict], key: str) -> list[tuple[str, str, str]]:
+    """Use DBLP's byline ordinals, never query row order or lexical PID order."""
+    by_role = {"author": {}, "editor": {}}
+    roles = {
+        "https://dblp.org/rdf/schema#authoredBy": "author",
+        "https://dblp.org/rdf/schema#editedBy": "editor",
+    }
+    for row in rows:
+        uri = _value(row, "author")
+        pid = uri.removeprefix("https://dblp.org/pid/")
+        name = _value(row, "name")
+        if not pid or not name or not uri.startswith("https://dblp.org/pid/"):
+            raise DblpError(f"Missing contributor identity for {key}")
+        role = roles.get(_value(row, "role"))
+        ordinal = _value(row, "ordinal")
+        if role is None or not re.fullmatch(r"[1-9][0-9]*", ordinal):
+            raise DblpError(f"Missing or invalid contributor order for {key}")
+        positions = by_role[role]
+        contributor = (pid, name, role)
+        previous = positions.setdefault(int(ordinal), contributor)
+        if previous != contributor:
+            raise DblpError(f"Conflicting contributor order for {key}")
+
+    contributors = []
+    for positions in by_role.values():
+        ordered = [positions[position] for position in sorted(positions)]
+        if set(positions) != set(range(1, len(positions) + 1)) or len(
+            {pid for pid, _, _ in ordered}
+        ) != len(ordered):
+            raise DblpError(f"Incomplete or conflicting contributor order for {key}")
+        contributors.extend(ordered)
+    return contributors
 
 
 def _value(row: dict, key: str) -> str:
