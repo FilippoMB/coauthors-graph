@@ -2,6 +2,7 @@ import cytoscape from "cytoscape";
 
 import {
   communityColor,
+  edgeOpacity,
   edgeWidth,
   nodeDisplayLabel,
   nodeSize,
@@ -9,12 +10,10 @@ import {
   resolveTheme,
   validateGraphData,
 } from "./graph-data.js";
+import { labelFontSize, syncGraphAppearance } from "./graph-appearance.js";
 import { restoreGeneratedLayout, viewportPadding } from "./graph-layout.js";
 import { renderSourceStatus } from "./source-status.js";
 import "./styles.css";
-
-const COAUTHOR_LABEL_SIZE = 18;
-const FOCAL_AUTHOR_LABEL_SIZE = 21;
 
 const elements = {
   title: document.querySelector("#page-title"),
@@ -55,6 +54,7 @@ async function initialize() {
     graphData = validateGraphData(await response.json());
     renderMetadata(graphData);
     graph = createGraph(graphData);
+    syncGraphAppearance(graph);
     bindGraphEvents();
     elements.resetButton.addEventListener("click", resetGraph);
     elements.detailsClose.addEventListener("click", clearSelection);
@@ -70,7 +70,9 @@ function createGraph(data) {
       ...node,
       display_label: nodeDisplayLabel(node),
       size: nodeSize(node.publication_count, node.is_focal),
-      font_size: node.is_focal ? FOCAL_AUTHOR_LABEL_SIZE : COAUTHOR_LABEL_SIZE,
+      font_size: labelFontSize(node.is_focal, 1),
+      label_outline_width: 1.5,
+      label_margin: 4,
       color: communityColor(node.community, activeTheme),
       label_color: activeTheme === "dark" ? "#e8eef8" : "#172033",
       label_outline: activeTheme === "dark" ? "#07111f" : "#f6f8fc",
@@ -85,6 +87,7 @@ function createGraph(data) {
     data: {
       ...edge,
       width: edgeWidth(edge.publication_count),
+      opacity: edgeOpacity(edge.publication_count),
       color: edgeColor,
     },
   }));
@@ -110,21 +113,14 @@ function createGraph(data) {
           color: "data(label_color)",
           "font-family": "Inter, ui-sans-serif, system-ui, sans-serif",
           "font-size": "data(font_size)",
-          "font-weight": 700,
+          "font-weight": 600,
           "text-outline-color": "data(label_outline)",
-          "text-outline-width": 4,
+          "text-outline-width": "data(label_outline_width)",
           "text-valign": "bottom",
-          "text-margin-y": 11,
-          "text-wrap": "wrap",
-          "text-max-width": 150,
-          "min-zoomed-font-size": 4,
-          "shadow-blur": 18,
-          "shadow-color": "data(color)",
-          "shadow-opacity": 0.3,
-          "shadow-offset-x": 0,
-          "shadow-offset-y": 3,
+          "text-margin-y": "data(label_margin)",
+          "text-wrap": "none",
           "overlay-opacity": 0,
-          "transition-property": "opacity, border-width, border-color, shadow-opacity",
+          "transition-property": "opacity, border-width, border-color",
           "transition-duration": "160ms",
         },
       },
@@ -134,9 +130,6 @@ function createGraph(data) {
           "background-color": "data(focal_color)",
           "border-width": 3,
           "border-color": "data(focal_border)",
-          "shadow-blur": 28,
-          "shadow-color": "data(focal_border)",
-          "shadow-opacity": 0.6,
           "z-index": 10,
         },
       },
@@ -146,7 +139,7 @@ function createGraph(data) {
           width: "data(width)",
           "line-color": "data(color)",
           "curve-style": "bezier",
-          opacity: 0.24,
+          opacity: "data(opacity)",
           "overlay-opacity": 0,
           "transition-property": "opacity, line-color",
           "transition-duration": "160ms",
@@ -158,15 +151,13 @@ function createGraph(data) {
       },
       {
         selector: "edge.focused",
-        style: { opacity: 0.78 },
+        style: { opacity: 0.9 },
       },
       {
         selector: "node.selected",
         style: {
           "border-width": 5,
           "border-color": "data(selection_border)",
-          "shadow-opacity": 0.75,
-          "shadow-blur": 30,
         },
       },
     ],
@@ -174,6 +165,7 @@ function createGraph(data) {
 }
 
 function bindGraphEvents() {
+  graph.on("zoom", () => syncGraphAppearance(graph));
   graph.on("mouseover", "node", (event) => {
     focusNode(event.target, false);
     showTooltip(event.target, event.renderedPosition);

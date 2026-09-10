@@ -167,8 +167,13 @@ export function nodeSize(publicationCount, isFocal = false) {
 }
 
 export function edgeWidth(publicationCount) {
-  const count = Math.max(0, Number(publicationCount) || 0);
-  return Math.min(8, Math.max(1, 0.75 + 1.2 * Math.sqrt(count)));
+  const count = Math.max(1, Number(publicationCount) || 1);
+  return Math.min(4.6, 0.65 + 0.9 * Math.log2(count));
+}
+
+export function edgeOpacity(publicationCount) {
+  const count = Math.max(1, Number(publicationCount) || 1);
+  return Math.min(0.64, 0.22 + 0.1 * Math.log2(count));
 }
 
 export function communityColor(community, theme) {

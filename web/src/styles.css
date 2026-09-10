@@ -368,7 +368,7 @@ h1 {
   z-index: 15;
   bottom: 28px;
   left: 34px;
-  width: min(430px, calc(100vw - 68px));
+  width: min(480px, calc(100vw - 68px));
   padding: 16px 18px 15px;
   border: 1px solid var(--border);
   border-radius: 18px;
@@ -376,15 +376,6 @@ h1 {
   box-shadow: 0 14px 38px color-mix(in srgb, var(--background) 42%, transparent);
   color: var(--muted);
   backdrop-filter: blur(20px) saturate(140%);
-}
-
-.guide-title {
-  margin: 0 0 10px;
-  color: var(--text);
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
 .guide-items {
@@ -397,7 +388,7 @@ h1 {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 620;
   line-height: 1.35;
 }
@@ -406,7 +397,7 @@ h1 {
   margin: 11px 0 0;
   padding-top: 10px;
   border-top: 1px solid var(--border);
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   line-height: 1.4;
 }
 
@@ -460,20 +451,20 @@ h1 {
 
 .key-edge::before,
 .key-edge::after {
+  position: absolute;
   width: 27px;
   content: "";
-  background: var(--accent);
+  background: var(--muted);
 }
 
 .key-edge::before {
+  top: 3px;
   height: 1px;
 }
 
 .key-edge::after {
-  position: absolute;
-  width: 13px;
-  height: 3px;
-  transform: translateX(7px);
+  bottom: 2px;
+  height: 4px;
 }
 
 .reset-button {
@@ -652,11 +643,6 @@ h1 {
     border-radius: 16px;
   }
 
-  .guide-title {
-    margin-bottom: 8px;
-    font-size: 0.6rem;
-  }
-
   .guide-items {
     grid-template-columns: 1fr;
     gap: 5px;
@@ -664,7 +650,7 @@ h1 {
 
   .guide-items span {
     align-items: center;
-    font-size: 0.59rem;
+    font-size: 0.75rem;
   }
 
   .guide-hint {

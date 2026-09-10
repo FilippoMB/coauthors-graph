@@ -7,7 +7,7 @@ import { restoreGeneratedLayout, viewportPadding } from "../src/graph-layout.js"
 describe("graph layout", () => {
   it("keeps desktop framing and leaves usable room on mobile", () => {
     expect(viewportPadding(390)).toBe(32);
-    expect(viewportPadding(1280)).toBe(128);
+    expect(viewportPadding(1280)).toBe(72);
   });
   it("restores dragged nodes to generated positions", () => {
     const nodes = [

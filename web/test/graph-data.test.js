@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   communityColor,
+  edgeOpacity,
   edgeWidth,
   isSafePublicationUrl,
   nodeDisplayLabel,
@@ -125,7 +126,10 @@ describe("graph data", () => {
     expect(nodeSize(10000)).toBe(60);
     expect(nodeSize(1, true)).toBe(84);
     expect(edgeWidth(10)).toBeGreaterThan(edgeWidth(1));
-    expect(edgeWidth(10000)).toBe(8);
+    expect(edgeWidth(1)).toBe(0.65);
+    expect(edgeWidth(10000)).toBe(4.6);
+    expect(edgeOpacity(10)).toBeGreaterThan(edgeOpacity(1));
+    expect(edgeOpacity(10000)).toBe(0.64);
   });
 
   it("returns publications shared with the focal author", () => {

@@ -6,6 +6,8 @@ A modern, interactive view of [Filippo Maria Bianchi's](https://dblp.org/pid/139
 
 The graph uses color for collaboration communities, node size for publication frequency, and edge width for the number of works shared by each author pair. The focal author is the large white node. Node labels use initials for clarity; hover or select a node to see the full name. Click an author to inspect shared publications, drag nodes to explore, or use **Reset layout** to restore the generated positions and viewport.
 
+Labels stay at least 12 screen pixels tall when zoomed out. Link widths remain visible at every zoom level (0.65–4.6 screen pixels, logarithmically scaled by shared papers); more frequent collaborations are also higher contrast.
+
 ## How it works
 
 The project is split into two deliberately small parts:
