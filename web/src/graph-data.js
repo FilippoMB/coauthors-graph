@@ -32,8 +32,25 @@ export function validateGraphData(value) {
   if (!value || typeof value !== "object") {
     throw new Error("Graph data must be an object.");
   }
-  if (value.meta?.schema_version !== 2) {
+  if (![2, 3].includes(value.meta?.schema_version)) {
     throw new Error("Unsupported graph data version.");
+  }
+  if (value.meta.schema_version === 3) {
+    const { sources, last_checked_at: checked, generated_at: generated } = value.meta;
+    if (
+      !Number.isFinite(Date.parse(checked)) || !Number.isFinite(Date.parse(generated)) ||
+      !sources || typeof sources !== "object" || Array.isArray(sources) ||
+      Object.values(sources).some((source) =>
+        !source || !["fresh", "partial", "cached", "unavailable"].includes(source.status) ||
+        !Number.isFinite(Date.parse(source.last_attempt_at)) ||
+        (source.last_success_at !== null && !Number.isFinite(Date.parse(source.last_success_at))) ||
+        ["accepted_count", "rejected_count", "retained_count", "added_count"].some(
+          (key) => !Number.isInteger(source[key]) || source[key] < 0,
+        ),
+      )
+    ) {
+      throw new Error("Graph data contains invalid source health metadata.");
+    }
   }
   for (const collection of ["nodes", "edges", "publications"]) {
     if (!Array.isArray(value[collection])) {

@@ -6,13 +6,13 @@ from pathlib import Path
 import pytest
 
 from coauthors_graph import __main__ as cli
-from coauthors_graph.semantic_scholar import SemanticScholarError
+from coauthors_graph.state import StateError
 
 
 DBLP_FIXTURE = Path(__file__).parent / "fixtures" / "dblp_person.xml"
 
 
-def test_source_failure_leaves_previous_graph_file_untouched(
+def test_invalid_baseline_leaves_previous_graph_file_untouched(
     tmp_path, monkeypatch
 ) -> None:
     config_path = tmp_path / "config.json"
@@ -27,16 +27,12 @@ def test_source_failure_leaves_previous_graph_file_untouched(
     )
     output = tmp_path / "graph.json"
     output.write_text('{"previous":true}', encoding="utf-8")
-    monkeypatch.setattr(
-        cli, "fetch_person_xml", lambda author_id: DBLP_FIXTURE.read_bytes()
-    )
 
-    def fail_semantic_scholar(author_id, *, api_key=None):
-        raise SemanticScholarError("source unavailable")
+    def must_not_fetch(*args, **kwargs):
+        raise AssertionError("Invalid saved state must stop before live fetching")
 
-    monkeypatch.setattr(cli, "fetch_author_profile", fail_semantic_scholar)
-
-    with pytest.raises(SemanticScholarError, match="source unavailable"):
+    monkeypatch.setattr(cli, "refresh", must_not_fetch)
+    with pytest.raises(StateError, match="Invalid saved graph"):
         cli.generate(config_path, output)
 
     assert output.read_text(encoding="utf-8") == '{"previous":true}'

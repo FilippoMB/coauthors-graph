@@ -9,7 +9,8 @@ import {
   resolveTheme,
   validateGraphData,
 } from "./graph-data.js";
-import { restoreGeneratedLayout } from "./graph-layout.js";
+import { restoreGeneratedLayout, viewportPadding } from "./graph-layout.js";
+import { renderSourceStatus } from "./source-status.js";
 import "./styles.css";
 
 const COAUTHOR_LABEL_SIZE = 18;
@@ -19,6 +20,7 @@ const elements = {
   title: document.querySelector("#page-title"),
   summary: document.querySelector("#graph-summary"),
   updatedAt: document.querySelector("#updated-at"),
+  sourceStatus: document.querySelector("#source-status"),
   loading: document.querySelector("#loading"),
   error: document.querySelector("#error"),
   errorMessage: document.querySelector("#error-message"),
@@ -90,8 +92,8 @@ function createGraph(data) {
   return cytoscape({
     container: document.querySelector("#cy"),
     elements: { nodes, edges },
-    layout: { name: "preset", fit: true, padding: 128 },
-    minZoom: 0.18,
+    layout: { name: "preset", fit: true, padding: viewportPadding(window.innerWidth) },
+    minZoom: 0.04,
     maxZoom: 3.2,
     wheelSensitivity: 0.22,
     style: [
@@ -203,7 +205,12 @@ function bindGraphEvents() {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       clearSelection();
+      elements.sourceStatus.open = false;
     }
+  });
+  window.addEventListener("resize", () => {
+    graph.resize();
+    graph.fit(undefined, viewportPadding(graph.width()));
   });
 }
 
@@ -281,6 +288,7 @@ function renderMetadata(data) {
     dateStyle: "medium",
   }).format(generatedAt)}`;
   elements.updatedAt.title = `Last successful graph generation: ${generatedAt.toLocaleString()}`;
+  renderSourceStatus(elements.sourceStatus, data.meta);
 }
 
 function focalAuthor() {

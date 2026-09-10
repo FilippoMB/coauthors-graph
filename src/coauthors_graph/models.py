@@ -42,3 +42,6 @@ class PersonProfile:
     name: str
     source_urls: tuple[str, ...]
     publications: tuple[Publication, ...]
+    warnings: tuple[str, ...] = ()
+    rejected_count: int = 0
+    complete: bool = True

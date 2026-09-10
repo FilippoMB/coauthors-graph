@@ -66,3 +66,15 @@ class FailingSession:
 def test_fetch_person_xml_reports_network_errors() -> None:
     with pytest.raises(DblpError, match="Could not fetch DBLP profile"):
         fetch_person_xml("01/1", session=FailingSession())
+
+
+def test_xml_fallback_isolates_an_invalid_record():
+    data = FIXTURE.read_bytes().replace(
+        b"</dblpperson>",
+        b'<r><article key="broken"><title>No year</title></article></r></dblpperson>',
+    )
+    profile = parse_person_xml(data, "01/1")
+    assert len(profile.publications) == 8
+    assert not profile.complete
+    assert profile.rejected_count == 1
+    assert "invalid year" in profile.warnings[0]

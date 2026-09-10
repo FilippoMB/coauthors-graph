@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +25,8 @@ class Config:
     community_algorithm: str
     community_resolution: float
     layout_seed: int
+    arxiv_orcid: str = ""
+    arxiv_author_names: tuple[str, ...] = ()
 
 
 def load_config(path: str | Path) -> Config:
@@ -39,6 +42,8 @@ def load_config(path: str | Path) -> Config:
         raise ConfigError("Configuration must be a JSON object")
 
     author_id = _required_string(raw, "author_id")
+    if not re.fullmatch(r"[A-Za-z0-9]+(?:[-/][A-Za-z0-9]+)*", author_id):
+        raise ConfigError("author_id must be a DBLP PID")
     semantic_scholar_author_id = _required_string(raw, "semantic_scholar_author_id")
     if not semantic_scholar_author_id.isdigit():
         raise ConfigError("semantic_scholar_author_id must contain only digits")
@@ -55,10 +60,23 @@ def load_config(path: str | Path) -> Config:
         raw.get("author_id_overrides", {}), "author_id_overrides"
     )
     if any(
-        not source_id.removeprefix("s2:").isdigit() for source_id in author_id_overrides
+        not source_id.removeprefix("s2:").isdigit()
+        and not source_id.startswith("provisional:")
+        for source_id in author_id_overrides
     ):
         raise ConfigError(
-            "author_id_overrides keys must be numeric Semantic Scholar author IDs"
+            "author_id_overrides keys must be numeric Semantic Scholar author IDs "
+            "or provisional: identifiers"
+        )
+    arxiv_orcid = raw.get("arxiv_orcid", "")
+    if not isinstance(arxiv_orcid, str) or (
+        arxiv_orcid and not re.fullmatch(r"\d{4}-\d{4}-\d{4}-\d{3}[\dX]", arxiv_orcid)
+    ):
+        raise ConfigError("arxiv_orcid must be an ORCID identifier")
+    arxiv_names = _string_list(raw.get("arxiv_author_names", []), "arxiv_author_names")
+    if arxiv_orcid and not arxiv_names:
+        raise ConfigError(
+            "arxiv_author_names is required to validate ORCID-feed contributors"
         )
     excluded_publication_ids = _string_list(
         raw.get("excluded_publication_ids", []), "excluded_publication_ids"
@@ -91,6 +109,8 @@ def load_config(path: str | Path) -> Config:
         community_algorithm=algorithm,
         community_resolution=float(resolution),
         layout_seed=layout_seed,
+        arxiv_orcid=arxiv_orcid,
+        arxiv_author_names=arxiv_names,
     )
 
 

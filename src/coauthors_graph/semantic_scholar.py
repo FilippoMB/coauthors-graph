@@ -8,6 +8,7 @@ from typing import Any
 import requests
 
 from .http import retrying_session
+from .identity import provisional_id
 from .models import Author, PersonProfile, Publication
 
 
@@ -63,6 +64,7 @@ def fetch_author_profile(
     seen_offsets: set[int] = set()
     offset = 0
     focal_names: list[str] = []
+    warnings: list[str] = []
 
     try:
         while True:
@@ -85,7 +87,11 @@ def fetch_author_profile(
                 )
 
             for record in records:
-                publication = _parse_publication(record, author_id)
+                try:
+                    publication = _parse_publication(record, author_id)
+                except SemanticScholarError as error:
+                    warnings.append(str(error))
+                    continue
                 if publication.semantic_scholar_id in seen_paper_ids:
                     raise SemanticScholarError(
                         "Semantic Scholar pagination repeated paper "
@@ -134,6 +140,9 @@ def fetch_author_profile(
         name=_preferred_name(focal_names),
         source_urls=(author_page_url(author_id),),
         publications=tuple(publications),
+        warnings=tuple(warnings),
+        rejected_count=len(warnings),
+        complete=not warnings,
     )
 
 
@@ -187,11 +196,7 @@ def _parse_publication(record: Any, expected_author_id: str) -> Publication:
             )
         name = _required_text(raw_author, "name")
         author_id = _optional_text(raw_author.get("authorId"))
-        if not author_id:
-            raise SemanticScholarError(
-                f"Semantic Scholar paper {paper_id} has an author without an ID"
-            )
-        pid = f"s2:{author_id}"
+        pid = f"s2:{author_id}" if author_id else provisional_id(f"s2:{paper_id}", name)
         authors_by_id.setdefault(pid, Author(pid=pid, name=name))
 
     if f"s2:{expected_author_id}" not in authors_by_id:

@@ -26,6 +26,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -42,9 +43,18 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add automation/heartbeat.json
+          if git diff --cached --quiet; then
+            echo "Heartbeat already recorded for this workflow run."
+            exit 0
+          fi
           git commit -m "chore: record scheduled refresh [skip ci]"
-          git pull --rebase origin main
-          git push origin HEAD:main
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+          done
+          exit 1
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -62,10 +72,17 @@ jobs:
           python -m ruff check src tests automation
           python -m ruff format --check src tests automation
 
-      - name: Generate graph data from DBLP and Semantic Scholar
+      - name: Restore last deployed publication snapshots
+        run: python -m automation.restore_state .refresh-input
+
+      - name: Refresh DBLP, Semantic Scholar, and arXiv independently
         env:
           SEMANTIC_SCHOLAR_API_KEY: ${{ secrets.SEMANTIC_SCHOLAR_API_KEY }}
-        run: python -m coauthors_graph --config config.json --output web/public/data/graph.json
+        run: >-
+          python -m coauthors_graph --config config.json
+          --state-input .refresh-input/source-state.json
+          --state-output web/public/data/source-state.json
+          --output web/public/data/graph.json
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -95,6 +112,7 @@ jobs:
           path: web/dist
 
   deploy:
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

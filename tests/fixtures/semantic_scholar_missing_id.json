@@ -1,0 +1,13 @@
+{
+  "data": [{
+    "paperId": "19f198e2de1a5682946fc63767160d1734a775ef",
+    "title": "Short-Term Electric Load Forecasting Using Echo State Networks and PCA Decomposition",
+    "year": 2015,
+    "authors": [
+      {"authorId": "14553624", "name": "F. Bianchi"},
+      {"authorId": null, "name": "Enrico De Santis"},
+      {"authorId": "144469641", "name": "A. Rizzi"},
+      {"authorId": "1687711", "name": "A. Sadeghian"}
+    ]
+  }]
+}

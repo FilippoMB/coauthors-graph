@@ -80,6 +80,90 @@ def combine_profiles(
     )
 
 
+def reconcile_profiles(
+    profiles: tuple[PersonProfile, ...],
+    config: Config,
+    *,
+    focal_name: str,
+) -> tuple[PersonProfile, dict[str, str]]:
+    """Reconcile any available sources, including saved normalized records."""
+    latest = {}
+    for profile in profiles:
+        for record in profile.publications:
+            old = latest.get(record.key)
+            if old:
+                record = replace(
+                    record,
+                    external_ids=tuple(
+                        sorted(set(old.external_ids) | set(record.external_ids))
+                    ),
+                    provenance=tuple(
+                        sorted(set(old.provenance) | set(record.provenance))
+                    ),
+                    source_ids=tuple(
+                        sorted(set(old.source_ids) | set(record.source_ids))
+                    ),
+                )
+            latest[record.key] = record
+    records = tuple(p for p in latest.values() if _include_publication(p, config))
+    if not records:
+        raise MergeError("No publications remain after filtering")
+    # Resolve stable S2 IDs against DBLP before using S2 names to identify arXiv contributors.
+    dblp_authors = tuple(
+        replace(p, authors=tuple(a for a in p.authors if ":" not in a.pid))
+        for p in records
+    )
+    anchor = PersonProfile(config.author_id, focal_name, (), dblp_authors)
+    first = _AuthorResolver(anchor, config)
+    stable_records = tuple(
+        replace(
+            p,
+            authors=tuple(
+                first.resolve(a)
+                for a in p.authors
+                if not a.pid.startswith("provisional:")
+            ),
+        )
+        for p in records
+    )
+    resolver = _AuthorResolver(replace(anchor, publications=stable_records), config)
+    aliases = {}
+    mapped = []
+    for record in records:
+        authors = {}
+        for author in record.authors:
+            resolved = first.resolve(author) if author.pid.startswith("s2:") else author
+            if resolved.pid.startswith("provisional:"):
+                resolved = resolver.resolve(resolved)
+            aliases[author.pid] = resolved.pid
+            authors.setdefault(resolved.pid, resolved)
+        mapped.append(replace(record, authors=tuple(authors.values())))
+    # Previously deployed merged records can overlap fresh copies by their source IDs.
+    # Group those copies explicitly so a legacy formal record cannot become a ghost duplicate.
+    by_source_id = defaultdict(set)
+    for record in mapped:
+        for source_id in (record.key, *record.source_ids):
+            by_source_id[source_id].add(record.key)
+    groups = tuple(
+        tuple(sorted(keys)) for keys in by_source_id.values() if len(keys) > 1
+    )
+    publications = _deduplicate_publications(
+        tuple(mapped), (*config.duplicate_groups, *groups)
+    )
+    if any(not any(a.pid == config.author_id for a in p.authors) for p in publications):
+        raise MergeError(
+            "A publication is missing the focal author after reconciliation"
+        )
+    return PersonProfile(
+        config.author_id,
+        focal_name,
+        tuple(
+            dict.fromkeys(url for profile in profiles for url in profile.source_urls)
+        ),
+        publications,
+    ), aliases
+
+
 class _AuthorResolver:
     def __init__(self, dblp_profile: PersonProfile, config: Config) -> None:
         self._focal_s2_pid = f"s2:{config.semantic_scholar_author_id}"
@@ -106,9 +190,7 @@ class _AuthorResolver:
 
         self._overrides: dict[str, str] = {}
         for source_id, target_pid in config.author_id_overrides.items():
-            normalized_source = (
-                source_id if source_id.startswith("s2:") else f"s2:{source_id}"
-            )
+            normalized_source = source_id if ":" in source_id else f"s2:{source_id}"
             normalized_target = target_pid.removeprefix("dblp:")
             if normalized_target not in self._aliases:
                 raise MergeError(

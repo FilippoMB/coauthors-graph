@@ -3,21 +3,27 @@
 from __future__ import annotations
 
 import argparse
-import json
-import os
 from pathlib import Path
+import os
 import sys
 
 from .config import ConfigError, load_config
-from .dblp import DblpError, fetch_person_xml, parse_person_xml
-from .graph import GraphError, build_graph_document
-from .merge import MergeError, combine_profiles
-from .semantic_scholar import SemanticScholarError, fetch_author_profile
+from .graph import GraphError
+from .merge import MergeError
+from .refresh import refresh, write_run_summary
+from .state import (
+    StateError,
+    bootstrap_state,
+    empty_state,
+    load_state,
+    read_json,
+    write_json,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Generate a static co-author graph from DBLP and Semantic Scholar."
+        description="Refresh a co-author graph from DBLP, Semantic Scholar, and arXiv."
     )
     parser.add_argument(
         "--config",
@@ -29,44 +35,77 @@ def build_parser() -> argparse.ArgumentParser:
         default="web/public/data/graph.json",
         help="Destination for the generated graph JSON",
     )
+    parser.add_argument("--state-input", help="Previously deployed source-state JSON")
+    parser.add_argument(
+        "--state-output", help="Destination for the next source-state JSON"
+    )
+    parser.add_argument(
+        "--bootstrap-graph",
+        help="Existing v2/v3 graph for the first snapshot migration",
+    )
     return parser
 
 
-def generate(config_path: str | Path, output_path: str | Path) -> Path:
+def generate(
+    config_path: str | Path,
+    output_path: str | Path,
+    *,
+    state_input=None,
+    state_output=None,
+    bootstrap_graph=None,
+) -> Path:
     config = load_config(config_path)
-    xml_data = fetch_person_xml(config.author_id)
-    dblp_profile = parse_person_xml(xml_data, config.author_id)
-    semantic_scholar_profile = fetch_author_profile(
-        config.semantic_scholar_author_id,
-        api_key=os.environ.get("SEMANTIC_SCHOLAR_API_KEY"),
-    )
-    profile = combine_profiles(dblp_profile, semantic_scholar_profile, config)
-    document = build_graph_document(profile, config)
-
     destination = Path(output_path)
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    temporary = destination.with_suffix(f"{destination.suffix}.tmp")
-    temporary.write_text(
-        json.dumps(document, ensure_ascii=False, separators=(",", ":")),
-        encoding="utf-8",
+    state_destination = (
+        Path(state_output)
+        if state_output
+        else destination.with_name("source-state.json")
     )
-    temporary.replace(destination)
+    if state_destination.resolve() == destination.resolve():
+        raise StateError("Graph output and state output must be different files")
+    if state_input:
+        previous = load_state(state_input, config.author_id)
+    elif state_destination.exists():
+        previous = load_state(state_destination, config.author_id)
+    elif bootstrap_graph or destination.exists():
+        previous = bootstrap_state(
+            read_json(bootstrap_graph or destination), config.author_id
+        )
+    else:
+        previous = empty_state(config.author_id)
+    document, state = refresh(config, previous)
+    # Everything has been validated before either output is replaced. Deployment
+    # publishes these files together; interrupted local runs recover from state.graph.
+    write_json(state_destination, state)
+    write_json(destination, document)
+    write_run_summary(document)
     return destination
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        destination = generate(args.config, args.output)
+        destination = generate(
+            args.config,
+            args.output,
+            state_input=args.state_input,
+            state_output=args.state_output,
+            bootstrap_graph=args.bootstrap_graph,
+        )
     except (
         ConfigError,
-        DblpError,
-        SemanticScholarError,
+        StateError,
         MergeError,
         GraphError,
         OSError,
     ) as error:
         print(f"error: {error}", file=sys.stderr)
+        summary = os.environ.get("GITHUB_STEP_SUMMARY")
+        if summary:
+            with Path(summary).open("a", encoding="utf-8") as stream:
+                stream.write(
+                    "## Publication refresh failed\n\nValidation or generation failed. The previous Pages deployment is unchanged. See the step log for details.\n"
+                )
         return 1
 
     print(f"Wrote co-author graph data to {destination}")

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">
+  <opensearch:totalResults>1</opensearch:totalResults>
+  <entry>
+    <id>http://arxiv.org/abs/2608.14366v1</id>
+    <updated>2026-08-14T15:05:23Z</updated>
+    <published>2026-08-14T15:05:23Z</published>
+    <title>Weakly Supervised Polar Low Segmentation in Sentinel-1 SAR Imagery</title>
+    <author><name>Andrea Federici</name></author>
+    <author><name>Jakob Grahn</name></author>
+    <author><name>Giacomo Boracchi</name></author>
+    <author><name>Filippo Maria Bianchi</name></author>
+  </entry>
+</feed>

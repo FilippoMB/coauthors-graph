@@ -63,7 +63,7 @@ def test_build_graph_emits_versioned_deterministic_document() -> None:
 
     assert first == second
     assert first["meta"] == {
-        "schema_version": 2,
+        "schema_version": 3,
         "generated_at": "2026-07-10T12:00:00Z",
         "source_urls": ["https://dblp.org/pid/01/1.xml"],
         "focal_author_id": "01/1",

@@ -154,6 +154,47 @@ h1 {
   gap: 9px;
 }
 
+.source-status {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.source-status summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 650;
+}
+
+.source-status[data-degraded="true"] summary {
+  color: color-mix(in srgb, #d97706 80%, var(--text));
+}
+
+.source-status summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 3px;
+}
+
+.source-status-body {
+  max-height: min(360px, 45dvh);
+  overflow-y: auto;
+  padding-right: 8px;
+  line-height: 1.5;
+}
+
+.source-status-body section {
+  display: grid;
+  gap: 2px;
+  padding: 9px 0;
+  border-top: 1px solid var(--border);
+}
+
+.source-status-body strong {
+  color: var(--text);
+}
+
 .updated-at {
   padding: 9px 13px;
   border: 1px solid var(--border);

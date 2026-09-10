@@ -1,10 +1,14 @@
 import cytoscape from "cytoscape";
 import { describe, expect, it } from "vitest";
 
-import { restoreGeneratedLayout } from "../src/graph-layout.js";
+import { restoreGeneratedLayout, viewportPadding } from "../src/graph-layout.js";
 
 
 describe("graph layout", () => {
+  it("keeps desktop framing and leaves usable room on mobile", () => {
+    expect(viewportPadding(390)).toBe(32);
+    expect(viewportPadding(1280)).toBe(128);
+  });
   it("restores dragged nodes to generated positions", () => {
     const nodes = [
       { id: "a", x: 12.5, y: -4 },

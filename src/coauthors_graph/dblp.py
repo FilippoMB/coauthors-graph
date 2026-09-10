@@ -66,6 +66,11 @@ def fetch_person_xml(
 
 
 def parse_person_xml(xml_data: bytes, expected_pid: str) -> PersonProfile:
+    if (
+        b"<html" in xml_data[:1000].lower()
+        or b"<!doctype html" in xml_data[:1000].lower()
+    ):
+        raise DblpError("DBLP returned an HTML challenge instead of publication XML")
     try:
         root = ET.fromstring(xml_data)
     except ET.ParseError as error:
@@ -75,11 +80,25 @@ def parse_person_xml(xml_data: bytes, expected_pid: str) -> PersonProfile:
         raise DblpError(f"Unexpected DBLP XML root element: {root.tag}")
 
     person_pid = root.get("pid") or expected_pid
+    if person_pid != expected_pid:
+        raise DblpError("DBLP profile PID does not match the requested author")
     person_name = _clean_text(root.get("name"))
     if not person_name:
         raise DblpError("DBLP profile does not contain a person name")
 
-    publications = tuple(_parse_publications(root))
+    publications, warnings = [], []
+    for wrapper in root.findall("r"):
+        fragment = ET.Element("dblpperson")
+        fragment.append(wrapper)
+        try:
+            for publication in _parse_publications(fragment):
+                if not any(author.pid == person_pid for author in publication.authors):
+                    raise DblpError(
+                        f"Publication {publication.key} omits the focal author"
+                    )
+                publications.append(publication)
+        except DblpError as error:
+            warnings.append(str(error))
     if not publications:
         raise DblpError("DBLP profile contains no supported publications")
     if not any(
@@ -94,7 +113,10 @@ def parse_person_xml(xml_data: bytes, expected_pid: str) -> PersonProfile:
         pid=person_pid,
         name=person_name,
         source_urls=(person_export_url(expected_pid),),
-        publications=publications,
+        publications=tuple(publications),
+        warnings=tuple(warnings),
+        rejected_count=len(warnings),
+        complete=not warnings,
     )
 
 

@@ -66,6 +66,17 @@ const data = {
 };
 
 describe("graph data", () => {
+  it("validates schema-v3 source health and rejects malformed freshness data", () => {
+    const current = { ...data, meta: { ...data.meta, schema_version: 3,
+      generated_at: "2026-09-10T12:00:00Z", last_checked_at: "2026-09-10T12:00:00Z",
+      sources: { dblp: { status: "fresh", last_attempt_at: "2026-09-10T12:00:00Z",
+        last_success_at: "2026-09-10T12:00:00Z", accepted_count: 130, rejected_count: 0, retained_count: 0, added_count: 1 } },
+    } };
+    expect(validateGraphData(current)).toBe(current);
+    expect(() => validateGraphData({ ...current, meta: { ...current.meta, last_checked_at: "bad" } })).toThrow("source health");
+    expect(() => validateGraphData({ ...current, meta: { ...current.meta, sources: { dblp: { ...current.meta.sources.dblp, accepted_count: -1 } } } })).toThrow("source health");
+  });
+
   it("validates schema-v2 data and rejects stale or unsafe metadata", () => {
     expect(validateGraphData(data)).toBe(data);
     expect(() => validateGraphData({ ...data, meta: { schema_version: 1 } })).toThrow(

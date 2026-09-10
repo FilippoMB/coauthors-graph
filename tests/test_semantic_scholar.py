@@ -107,20 +107,26 @@ def test_every_returned_paper_must_include_the_requested_author() -> None:
         if author["authorId"] != "14553624"
     ]
 
-    with pytest.raises(SemanticScholarError, match="omits requested author"):
-        fetch_author_profile(
-            "14553624",
-            session=FakeSession([{"data": [pages[0]["data"][0], invalid_record]}]),
-        )
+    profile = fetch_author_profile(
+        "14553624",
+        session=FakeSession([{"data": [pages[0]["data"][0], invalid_record]}]),
+    )
+    assert len(profile.publications) == 1
+    assert profile.complete is False
+    assert profile.rejected_count == 1
+    assert "omits requested author" in profile.warnings[0]
 
 
-def test_author_ids_are_required_for_stable_identity() -> None:
+def test_missing_author_ids_get_deterministic_provisional_identity() -> None:
     pages = json.loads(FIXTURE.read_text(encoding="utf-8"))
     record = deepcopy(pages[0]["data"][0])
     record["authors"][0]["authorId"] = None
 
-    with pytest.raises(SemanticScholarError, match="author without an ID"):
-        fetch_author_profile("14553624", session=FakeSession([{"data": [record]}]))
+    first = fetch_author_profile("14553624", session=FakeSession([{"data": [record]}]))
+    second = fetch_author_profile("14553624", session=FakeSession([{"data": [record]}]))
+    assert first == second
+    assert first.publications[0].authors[0].pid.startswith("provisional:")
+    assert first.complete
 
 
 def test_repeated_paper_across_pages_fails_instead_of_hiding_page_drift() -> None:

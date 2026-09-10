@@ -100,7 +100,7 @@ def build_graph_document(
 
     return {
         "meta": {
-            "schema_version": 2,
+            "schema_version": 3,
             "generated_at": generated_at.isoformat().replace("+00:00", "Z"),
             "source_urls": list(profile.source_urls),
             "focal_author_id": profile.pid,
