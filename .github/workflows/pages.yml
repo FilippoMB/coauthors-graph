@@ -31,6 +31,8 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
         with:
+          # Reruns must see the heartbeat already committed by their first attempt.
+          ref: main
           fetch-depth: 0
 
       - name: Record scheduled workflow heartbeat
